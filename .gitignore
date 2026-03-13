@@ -158,3 +158,9 @@ cython_debug/
 # macOS
 .DS_Store
 catboost_info/.DS_Store
+
+# Project specific files
+Code_Explanation_Wine_Quality.docx
+Report_Wine_Quality.docx
+og.ipynb
+
