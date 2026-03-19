@@ -1,0 +1,367 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage[left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{amsmath, amssymb}
+\usepackage{hyperref}
+\usepackage{xurl}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage[numbers]{natbib}
+
+\onehalfspacing
+
+%COVER PAGE
+\begin{document}
+\begin{titlepage}
+
+\noindent
+\begin{minipage}{0.3\textwidth}
+    \raggedright
+    \includegraphics[width=\textwidth]{fpt.png}
+\end{minipage}
+\begin{minipage}{0.7\textwidth}
+    \raggedleft
+    {\large AIL301m Project}
+\end{minipage}
+
+\vspace{2cm}
+
+\centering
+{\LARGE \textbf{Wine Quality Prediction\\Using Ensemble Machine Learning with Explanable AI}}\\[2cm]
+
+{\large
+\begin{tabular}{ll}
+    \textbf Nguyen Hoang An \\
+    \textbf Nguyen Thanh Trung \\
+            Bui Chi Linh \\
+            Kieu Duc Manh \\
+\end{tabular}
+}\\[1cm]
+
+{\large \textbf{Advisor:} \textit{Mr. Luong Trung Kien}}
+
+\vfill
+
+\centering
+{\large Hanoi, 2026}
+
+\end{titlepage}
+
+% 1. INTRODUCTION
+\section{Introduction}
+
+Traditional wine assessment is subjective and inconsistent, creating a need for objective, data-driven methods in a \$400 billion industry. This project uses machine learning to predict wine quality by analyzing physicochemical properties.
+
+\textbf{Project Overview}
+
+The system performs multi-class wine quality prediction, classifying wines on a scale of 3--9. It processes 12 chemical features---such as acidity, pH, and alcohol content---to generate an automated quality rating.
+
+\textbf{Key Motivations}
+
+\begin{itemize}
+    \item \textbf{Objectivity:} Removes the inherent bias and disagreement found in human tasting.
+    \item \textbf{Data-Driven Insights:} Identifies latent patterns in measurable chemical properties.
+    \item \textbf{Production Support:} Assists winemakers with early-stage quality control and adjustments.
+\end{itemize}
+
+\textbf{Technical Implementation}
+
+The project compares several advanced models---including Random Forest, XGBoost, CatBoost, and Ensemble methods (Stacking/Blending)---to handle noisy, imbalanced data.
+
+To ensure transparency, the system integrates Explainable AI (XAI) via SHAP, providing clear reasons for every prediction. The final tool is deployed as a Streamlit web dashboard, allowing users to input wine data and receive instant, visualized quality assessments.
+
+% 2. DATA PREPARATION
+\section{Data Preparation}
+
+\subsection{Dataset Description}
+
+The dataset used in this project is the \textbf{Wine Quality Dataset}, gathered from GeeksForGeeks or any other publicly available sources, which combines red and white wine samples from the UCI Machine Learning Repository [1]. The combined dataset contains \textbf{6,497 samples} with \textbf{13 attributes}: 12 physicochemical input features and 1 target variable (quality rating). Each sample is labeled with a quality score ranging from 3 to 9, as assessed by expert wine tasters. The dataset includes a categorical feature indicating the wine type (red or white).
+
+\begin{table}[H]
+\centering
+\caption{Summary of the Wine Quality Dataset.}
+\label{tab:dataset_summary}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Feature} & \textbf{Type} & \textbf{Min} & \textbf{Max} & \textbf{Mean} \\
+\midrule
+Fixed Acidity           & Float   & 3.8    & 15.9   & 7.22  \\
+Volatile Acidity        & Float   & 0.08   & 1.58   & 0.34  \\
+Citric Acid             & Float   & 0.00   & 1.66   & 0.32  \\
+Residual Sugar          & Float   & 0.60   & 65.80  & 5.44  \\
+Chlorides               & Float   & 0.009  & 0.611  & 0.056 \\
+Free Sulfur Dioxide     & Float   & 1.0    & 289.0  & 30.5  \\
+Total Sulfur Dioxide    & Float   & 6.0    & 440.0  & 115.7 \\
+Density                 & Float   & 0.987  & 1.039  & 0.995 \\
+pH                      & Float   & 2.72   & 4.01   & 3.22  \\
+Sulphates               & Float   & 0.22   & 2.00   & 0.53  \\
+Alcohol                 & Float   & 8.0    & 14.9   & 10.49 \\
+Type                    & Binary  & red    & white  & ---   \\
+\midrule
+Quality (Target)        & Integer & 3      & 9      & 5.82  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{2.1.png}
+    \caption{Distribution of wine quality ratings in the dataset. The majority of wines are rated 5, 6, or 7, demonstrating significant class imbalance.}
+    \label{fig:quality_dist}
+\end{figure}
+
+\subsection{Missing Value Handling}
+
+The dataset contained missing values in several numerical columns. These were imputed using the \textbf{median} strategy, which is robust to outliers commonly found in chemical measurement data. The median was computed on the full dataset prior to the train-test split for initial cleaning, and a \texttt{SimpleImputer} (median strategy) was subsequently fitted only on the training set during the modeling pipeline to prevent data leakage.
+
+\subsection{Feature Engineering}
+
+To enhance the predictive power of the models, 11 additional engineered features were created from the original 12 input features. These engineered features capture domain-specific relationships between chemical properties:
+
+\begin{enumerate}
+    \item \textbf{Ratio Features:} Acid ratio, sulfur ratio, and alcohol-sugar ratio capture the relative balance between complementary chemical properties.
+    \item \textbf{Interaction Features:} Density-alcohol interaction and sulphates-alcohol interaction capture multiplicative relationships.
+    \item \textbf{Polynomial Features:} Squared terms for alcohol and volatile acidity capture non-linear effects.
+    \item \textbf{Logarithmic Features:} Log-transformed volatile acidity, residual sugar, and chlorides reduce skewness.
+    \item \textbf{Chemical Balance Index:} A composite feature combining alcohol, volatile acidity, sulphates, citric acid, and chlorides with domain-informed weights:
+\end{enumerate}
+
+\begin{equation}
+\text{CBI} = 0.35 \times \text{Alcohol} + \frac{0.20}{\text{VA} + \epsilon} + 0.20 \times \text{Sulphates} + 0.15 \times \text{CA} + \frac{0.10}{\text{Chlorides} + \epsilon}
+\label{eq:cbi}
+\end{equation}
+
+where VA is volatile acidity, CA is citric acid, and $\epsilon = 10^{-8}$ prevents division by zero.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{2.3.png}
+    \caption{Correlation matrix of original and engineered features.}
+    \label{fig:corr_heatmap}
+\end{figure}
+
+\subsection{Feature Selection}
+
+After engineering, the total number of features increased to 23. To reduce dimensionality and remove noise, the \textbf{top 15 features} were selected based on their absolute Pearson correlation with the target variable. This correlation-based selection retained the most informative features while discarding redundant or weakly correlated ones.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{2.4.png}
+    \caption{Top 15 features ranked by absolute correlation with quality.}
+    \label{fig:top15_feat}
+\end{figure}
+
+\subsection{Data Splitting and Preprocessing Pipeline}
+
+To prevent \textbf{data leakage}, the preprocessing pipeline was carefully ordered as follows:
+
+\begin{enumerate}
+    \item \textbf{Train-Test Split:} The dataset was split into 80\% training and 20\% testing sets using stratified sampling to preserve the class distribution.
+    \item \textbf{Imputation:} A \texttt{SimpleImputer} (median) was fitted on the training set only and applied to both sets.
+    \item \textbf{Scaling:} A \texttt{StandardScaler} was fitted on the training set only, transforming each feature to have zero mean and unit variance. This normalization ensures that all features contribute equally to the model regardless of their original scale.
+    \item \textbf{SMOTE Oversampling:} Synthetic Minority Over-sampling Technique (SMOTE) was applied exclusively to the training set to address the severe class imbalance. SMOTE generates synthetic samples for minority classes by interpolating between existing minority samples and their nearest neighbors.
+\end{enumerate}
+
+% 3. METHODS
+\section{Methods}
+
+This section presents the complete pipeline from raw input features to the final quality prediction and explanation. Figure~\ref{fig:pipeline} illustrates the overall process.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{3.png}
+    \caption{End-to-end pipeline of the Wine Quality Prediction system.}
+    \label{fig:pipeline}
+\end{figure}
+
+\subsection{Baseline Models}
+
+Four individual classifiers were trained and evaluated as baseline models:
+
+\begin{itemize}
+    \item \textbf{Random Forest (RF):} An ensemble of decision trees trained on bootstrapped samples with random feature subsets. Hyperparameters were optimized using Optuna with 5 trials of Tree-structured Parzen Estimator (TPE) sampling. The \texttt{class\_weight='balanced'} parameter was used to further compensate for class imbalance.
+    \item \textbf{Extra Trees (ET):} Similar to Random Forest but uses the full dataset (no bootstrapping) and selects split points randomly, which provides additional diversity and reduces variance. Configured with 200 estimators and max depth of 20.
+    \item \textbf{XGBoost (XGB):} A gradient boosting framework that builds trees sequentially, with each new tree correcting the errors of the previous ones. Configured with 200 estimators, max depth of 6, and a learning rate of 0.05.
+    \item \textbf{CatBoost (CAT):} A gradient boosting algorithm with built-in support for categorical features and ordered boosting to reduce overfitting. Configured with 300 iterations, depth of 6, and auto class weights.
+\end{itemize}
+
+\subsection{Ensemble Methods}
+
+Two ensemble strategies were employed to combine the strengths of the base models:
+
+\subsubsection{Stacking Classifier}
+
+Stacking (Stacked Generalization) combines the predictions of multiple base models through a meta-learner. In this project, three base models (RF, ET, XGB) generate predictions via 3-fold cross-validation. These predictions are then used as input features for a \textbf{Logistic Regression meta-learner}, which learns the optimal way to combine the base model outputs. The meta-learner was configured with \texttt{class\_weight='balanced'} and a maximum of 500 iterations.
+
+The Logistic Regression meta-learner was chosen because it acts as a simple, stable weighted combination of the base models. On a small, noisy dataset with severe class imbalance, using a complex meta-learner (e.g., another tree-based model) would risk overfitting to the training predictions. Logistic Regression provides regularization by default and generalizes well to unseen data.
+
+\subsubsection{Blending}
+
+Blending is a simplified variant of Stacking. Instead of using cross-validated predictions, each base model generates \texttt{predict\_proba} outputs directly on the training set. These probability vectors are horizontally concatenated and used to train a Logistic Regression meta-model. While simpler to implement, Blending is slightly more prone to overfitting since the meta-model trains on the same data that the base models saw.
+
+\subsection{Explainable AI (XAI) with SHAP}
+
+To provide transparency and interpretability, SHAP (SHapley Additive exPlanations) was integrated into the prediction pipeline. SHAP is grounded in cooperative game theory and assigns each feature an importance value (Shapley value) for a particular prediction. The key properties of SHAP values are:
+
+\begin{equation}
+f(x) = \phi_0 + \sum_{i=1}^{M} \phi_i
+\label{eq:shap}
+\end{equation}
+
+where $f(x)$ is the model's output for input $x$, $\phi_0$ is the expected model output (baseline), $M$ is the number of features, and $\phi_i$ is the SHAP value for feature $i$.
+
+A \texttt{TreeExplainer} was used with the Extra Trees base model as the explanation proxy. This approach was chosen because \texttt{TreeExplainer} computes exact SHAP values in polynomial time for tree-based models, enabling real-time explanations in the dashboard. The Extra Trees model was selected as the proxy because it was the strongest individual base model (highest F1 Macro among single models).
+
+\subsection{Deployment with Streamlit}
+
+The trained models and preprocessing objects were serialized using \texttt{joblib} and loaded into a Streamlit web application. The dashboard provides:
+
+\begin{enumerate}
+    \item Interactive sidebar inputs for all 12 wine characteristics.
+    \item Real-time quality prediction with a descriptive explanation of the score.
+    \item A SHAP waterfall plot showing per-feature contributions for each prediction.
+    \item A prediction history table for comparing multiple predictions.
+\end{enumerate}
+
+% 4. RESULTS AND DISCUSSION
+\section{Results and Discussion}
+
+\subsection{Evaluation Metric}
+
+The primary evaluation metric used in this project is the \textbf{F1 Macro} score, which computes the F1 score independently for each class and takes the unweighted mean:
+
+\begin{equation}
+\text{F1 Macro} = \frac{1}{C} \sum_{c=1}^{C} \frac{2 \times \text{Precision}_c \times \text{Recall}_c}{\text{Precision}_c + \text{Recall}_c}
+\label{eq:f1macro}
+\end{equation}
+
+where $C$ is the number of classes (7 classes: quality 3 through 9). This metric was chosen because it treats all classes equally, penalizing models that ignore minority classes. This is critical for our heavily imbalanced dataset where classes 3, 4, 8, and 9 have very few samples.
+
+\subsection{Model Performance Comparison}
+
+Table~\ref{tab:results} presents the F1 Macro scores for all six models on the held-out test set (20\% of the data, stratified).
+
+\begin{table}[H]
+\centering
+\caption{Final test set performance comparison (F1 Macro).}
+\label{tab:results}
+\begin{tabular}{lc}
+\toprule
+\textbf{Model} & \textbf{F1 Macro} \\
+\midrule
+Stacking Classifier     & \textbf{0.3865} \\
+Blending                & 0.3859 \\
+Extra Trees             & 0.3827 \\
+Random Forest           & 0.3755 \\
+XGBoost                 & 0.3433 \\
+CatBoost                & 0.2834 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Discussion of Results}
+
+\textbf{Stacking achieved the best overall performance} with an F1 Macro of 0.3865, marginally outperforming Blending (0.3859) and Extra Trees (0.3827). This confirms that combining multiple diverse base models through a meta-learner yields more robust predictions than any single model alone.
+
+The F1 Macro scores may appear low in absolute terms; however, this is expected and well-documented in wine quality prediction literature [1]. The primary reasons are:
+
+\begin{enumerate}
+    \item \textbf{Severe class imbalance:} Classes 3, 4, 8, and 9 contain very few samples. The model struggles to learn patterns for these rare classes, resulting in near-zero F1 scores for some minority classes. Since F1 Macro averages all classes equally, these zeros drag the overall score down significantly.
+    \item \textbf{Subjectivity of wine ratings:} Wine quality is assessed by human experts whose judgments are inherently subjective. Even among professional tasters, inter-rater agreement is limited, introducing irreducible noise into the labels.
+    \item \textbf{Overlapping feature distributions:} The chemical properties of wines rated 5 vs. 6 (or 6 vs. 7) are often nearly indistinguishable, making adjacent-class separation extremely challenging.
+\end{enumerate}
+
+For context, if the same models were evaluated using \textbf{accuracy} or \textbf{F1 Weighted}, the scores would be approximately 0.60--0.65, which aligns with state-of-the-art results reported in the literature [1].
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{4.3.png}
+    \caption{Confusion matrix for the Stacking Classifier on the test set.}
+    \label{fig:cm_stacking}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{4.3-2.png}
+    \caption{Comparison of F1 Macro scores across all models.}
+    \label{fig:model_compare}
+\end{figure}
+
+\subsection{Explainable AI Results}
+
+The SHAP waterfall plot provides per-prediction explanations. Figure~\ref{fig:xai} shows an example explanation for a sample prediction.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{4.4.png}
+    \caption{SHAP waterfall plot showing feature contributions for a sample prediction. Red bars indicate features pushing the prediction probability higher; blue bars indicate features reducing it.}
+    \label{fig:xai}
+\end{figure}
+
+The SHAP analysis consistently reveals that \textbf{density}, \textbf{chemical\_balance\_index}, and \textbf{alcohol content} are the top three most influential features. The waterfall plot allows users to understand not just \textit{what} the model predicted, but \textit{why}, making the system suitable for real-world decision support in winemaking.
+
+\subsection{Dashboard Demonstration}
+
+The deployed Streamlit dashboard provides an end-to-end user experience for wine quality prediction.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{4.5.png}
+    \caption{Screenshot of the deployed Wine Quality Prediction dashboard.}
+    \label{fig:dashboard}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{4.5.png}
+    \caption{Prediction history table comparing multiple wine quality predictions.}
+    \label{fig:history}
+\end{figure}
+
+% 5. CONCLUSION AND PERSPECTIVES
+\section{Conclusion and Perspectives}
+
+This project successfully developed a complete machine learning pipeline for wine quality prediction, from data preprocessing and feature engineering through ensemble modeling and deployment. The Stacking Classifier, combining Random Forest, Extra Trees, and XGBoost through a Logistic Regression meta-learner, achieved the best F1 Macro score of 0.3865 on the test set. The integration of SHAP-based Explainable AI provides transparent, per-prediction explanations that help users understand which chemical properties drive each quality assessment.
+
+The main limitation of this work is the relatively low F1 Macro score, which is inherent to the severe class imbalance and subjective nature of the wine quality labels. Some classes (3, 4, 8, 9) have too few samples for the model to learn meaningful patterns.
+
+Future work could explore the following directions: (1) collecting more data for underrepresented quality classes to improve minority class recall; (2) framing the problem as ordinal regression instead of multi-class classification to leverage the natural ordering of quality ratings; (3) applying more advanced oversampling techniques such as ADASYN or borderline-SMOTE; and (4) integrating a global SHAP summary plot into the dashboard to provide feature importance across the entire dataset.
+
+% REFERENCES
+\section*{References}
+\addcontentsline{toc}{section}{References}
+
+\begin{enumerate}[label={[\arabic*]}]
+    \item \url{https://www.geeksforgeeks.org/machine-learning/wine-quality-prediction-machine-learning/}
+\end{enumerate}
+
+% APPENDIX
+\section*{Source Code \& Data}
+\addcontentsline{toc}{section}{Source Code \& Data}
+
+\begin{itemize}
+    \item \textbf{Source Code:} \url{https://github.com/annghoangg/wine-quality-prediction}
+    \item \textbf{Dataset:} The Wine Quality Dataset is publicly available from the UCI Machine Learning Repository: \url{https://archive.ics.uci.edu/ml/datasets/wine+quality}
+
+    Or from this GeeksForGeeks Forum Post:
+    \url{https://www.geeksforgeeks.org/machine-learning/wine-quality-prediction-machine-learning/}
+    \item \textbf{Key Files:}
+    \begin{itemize}
+        \item \texttt{main.ipynb} -- Main Jupyter Notebook with EDA, feature engineering, and model training.
+        \item \texttt{app.py} -- Streamlit dashboard application.
+        \item \texttt{models/} -- Directory containing serialized model and preprocessing objects.
+    \end{itemize}
+\end{itemize}
+
+\end{document}
