@@ -130,11 +130,37 @@ The dataset contained missing values in several numerical columns. These were im
 To enhance the predictive power of the models, 11 additional engineered features were created from the original 12 input features. These engineered features capture domain-specific relationships between chemical properties:
 
 \begin{enumerate}
-    \item \textbf{Ratio Features:} Acid ratio, sulfur ratio, and alcohol-sugar ratio capture the relative balance between complementary chemical properties.
-    \item \textbf{Interaction Features:} Density-alcohol interaction and sulphates-alcohol interaction capture multiplicative relationships.
-    \item \textbf{Polynomial Features:} Squared terms for alcohol and volatile acidity capture non-linear effects.
-    \item \textbf{Logarithmic Features:} Log-transformed volatile acidity, residual sugar, and chlorides reduce skewness.
-    \item \textbf{Chemical Balance Index:} A composite feature combining alcohol, volatile acidity, sulphates, citric acid, and chlorides with domain-informed weights:
+    \item \textbf{Ratio Features:} These ratios capture the relative balance between complementary chemical properties:
+    \begin{itemize}
+        \item \textbf{Acid Ratio} ($\text{Fixed Acidity} / (\text{Volatile Acidity} + \epsilon)$): Measures the balance between stable and volatile acids. Higher values indicate a more stable wine profile.
+        \item \textbf{Sulfur Ratio} ($\text{Free Sulfur Dioxide} / (\text{Total Sulfur Dioxide} + \epsilon)$): Indicates the proportion of active, unbounded sulfur available to protect the wine from oxidation.
+        \item \textbf{Alcohol-Sugar Ratio} ($\text{Alcohol} / (\text{Residual Sugar} + \epsilon)$): Represents the perceived dryness and fermentation completeness.
+    \end{itemize}
+    \vspace{0.2cm}
+    
+    \item \textbf{Interaction Features:} These features capture multiplicative relationships that concurrently affect a wine's body and preservation:
+    \begin{itemize}
+        \item \textbf{Density-Alcohol Interaction} ($\text{Density} \times \text{Alcohol}$): Both properties heavily influence the "mouthfeel" or body of the wine. Their interaction provides a unified proxy for textual richness.
+        \item \textbf{Sulphates-Alcohol Interaction} ($\text{Sulphates} \times \text{Alcohol}$): Both act as preservatives. Their combined effect is a strong indicator of wine longevity and stability.
+    \end{itemize}
+    \vspace{0.2cm}
+    
+    \item \textbf{Polynomial Features:} Used to model non-linear, quadratic effects of critical flavor components:
+    \begin{itemize}
+        \item \textbf{Alcohol Squared} ($\text{Alcohol}^2$): Amplifies the importance of alcohol content, which is historically one of the strongest predictors of subjective wine quality.
+        \item \textbf{Volatile Acidity Squared} ($\text{Volatile Acidity}^2$): Exponentially penalizes high volatile acidity, which is often perceived as an unpleasant vinegar-like fault in wines.
+    \end{itemize}
+    \vspace{0.2cm}
+    
+    \item \textbf{Logarithmic Features:} Designed to reduce positive skewness and handle heavy-tailed distributions:
+    \begin{itemize}
+        \item \textbf{Log Volatile Acidity} ($\log(1 + \text{Volatile Acidity})$): Normalizes the distribution of volatile acidity.
+        \item \textbf{Log Residual Sugar} ($\log(1 + \text{Residual Sugar})$): Compresses the wide range of sugar levels (from very dry to very sweet) into a more Gaussian-like distribution.
+        \item \textbf{Log Chlorides} ($\log(1 + \text{Chlorides})$): Mitigates the impact of extreme saltiness outliers.
+    \end{itemize}
+    \vspace{0.2cm}
+    
+    \item \textbf{Chemical Balance Index (CBI):} A composite feature combining five elements with domain-informed weights to estimate overall harmony:
 \end{enumerate}
 
 \begin{equation}
@@ -142,7 +168,7 @@ To enhance the predictive power of the models, 11 additional engineered features
 \label{eq:cbi}
 \end{equation}
 
-where VA is volatile acidity, CA is citric acid, and $\epsilon = 10^{-8}$ prevents division by zero.
+where VA is volatile acidity, CA is citric acid, and $\epsilon = 10^{-8}$ prevents division by zero. This index positively rewards high alcohol, sulphates, and citric acid, while penalizing high volatile acidity and chlorides.
 
 \begin{figure}[H]
     \centering
@@ -324,7 +350,7 @@ The deployed Streamlit dashboard provides an end-to-end user experience for wine
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{4.5.png}
+    \includegraphics[width=0.7\textwidth]{4.5-2.png}
     \caption{Prediction history table comparing multiple wine quality predictions.}
     \label{fig:history}
 \end{figure}
@@ -338,7 +364,10 @@ The main limitation of this work is the relatively low F1 Macro score, which is 
 
 Future work could explore the following directions: (1) collecting more data for underrepresented quality classes to improve minority class recall; (2) framing the problem as ordinal regression instead of multi-class classification to leverage the natural ordering of quality ratings; (3) applying more advanced oversampling techniques such as ADASYN or borderline-SMOTE; and (4) integrating a global SHAP summary plot into the dashboard to provide feature importance across the entire dataset.
 
+Furthermore, we plan to implement major quality-of-life improvements to the Streamlit dashboard functionality. The current slider-based input system will be upgraded to support direct hand-typed values for each chemical feature, allowing for far greater precision. Additionally, we will add a bulk-prediction feature that enables users to upload a CSV file containing multiple wine samples at once. The system will process the entire file and return a downloadable report containing all corresponding quality predictions and baseline SHAP summaries, drastically improving throughput for commercial winery usage.
+
 % REFERENCES
+\newpage
 \section*{References}
 \addcontentsline{toc}{section}{References}
 

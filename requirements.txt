@@ -1,0 +1,14 @@
+catboost
+google-generativeai
+imbalanced-learn
+joblib
+matplotlib
+numpy
+optuna
+pandas
+scikit-learn
+seaborn
+shap
+streamlit
+streamlit-shap
+xgboost
