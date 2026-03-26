@@ -127,66 +127,225 @@ The dataset contained missing values in several numerical columns. These were im
 
 \subsection{Feature Engineering}
 
-To enhance the predictive power of the models, 11 additional engineered features were created from the original 12 input features. These engineered features capture domain-specific relationships between chemical properties:
+To enhance the predictive power of the models, 11 additional engineered features were created from the original 12 input features. These features are organized into five groups based on the transformation technique applied. In all division-based formulas, a small constant $\epsilon = 10^{-8}$ is added to the denominator to prevent division by zero.
 
-\begin{enumerate}
-    \item \textbf{Ratio Features:} These ratios capture the relative balance between complementary chemical properties:
-    \begin{itemize}
-        \item \textbf{Acid Ratio} ($\text{Fixed Acidity} / (\text{Volatile Acidity} + \epsilon)$): Measures the balance between stable and volatile acids. Higher values indicate a more stable wine profile.
-        \item \textbf{Sulfur Ratio} ($\text{Free Sulfur Dioxide} / (\text{Total Sulfur Dioxide} + \epsilon)$): Indicates the proportion of active, unbounded sulfur available to protect the wine from oxidation.
-        \item \textbf{Alcohol-Sugar Ratio} ($\text{Alcohol} / (\text{Residual Sugar} + \epsilon)$): Represents the perceived dryness and fermentation completeness.
-    \end{itemize}
-    \vspace{0.2cm}
-    
-    \item \textbf{Interaction Features:} These features capture multiplicative relationships that concurrently affect a wine's body and preservation:
-    \begin{itemize}
-        \item \textbf{Density-Alcohol Interaction} ($\text{Density} \times \text{Alcohol}$): Both properties heavily influence the "mouthfeel" or body of the wine. Their interaction provides a unified proxy for textual richness.
-        \item \textbf{Sulphates-Alcohol Interaction} ($\text{Sulphates} \times \text{Alcohol}$): Both act as preservatives. Their combined effect is a strong indicator of wine longevity and stability.
-    \end{itemize}
-    \vspace{0.2cm}
-    
-    \item \textbf{Polynomial Features:} Used to model non-linear, quadratic effects of critical flavor components:
-    \begin{itemize}
-        \item \textbf{Alcohol Squared} ($\text{Alcohol}^2$): Amplifies the importance of alcohol content, which is historically one of the strongest predictors of subjective wine quality.
-        \item \textbf{Volatile Acidity Squared} ($\text{Volatile Acidity}^2$): Exponentially penalizes high volatile acidity, which is often perceived as an unpleasant vinegar-like fault in wines.
-    \end{itemize}
-    \vspace{0.2cm}
-    
-    \item \textbf{Logarithmic Features:} Designed to reduce positive skewness and handle heavy-tailed distributions:
-    \begin{itemize}
-        \item \textbf{Log Volatile Acidity} ($\log(1 + \text{Volatile Acidity})$): Normalizes the distribution of volatile acidity.
-        \item \textbf{Log Residual Sugar} ($\log(1 + \text{Residual Sugar})$): Compresses the wide range of sugar levels (from very dry to very sweet) into a more Gaussian-like distribution.
-        \item \textbf{Log Chlorides} ($\log(1 + \text{Chlorides})$): Mitigates the impact of extreme saltiness outliers.
-    \end{itemize}
-    \vspace{0.2cm}
-    
-    \item \textbf{Chemical Balance Index (CBI):} A composite feature combining five elements with domain-informed weights to estimate overall harmony:
-\end{enumerate}
+Table~\ref{tab:feature_formulas} summarizes all 11 engineered features and their corresponding formulas.
+
+\begin{table}[H]
+\centering
+\caption{Summary of all 11 engineered features.}
+\label{tab:feature_formulas}
+\small
+\begin{tabular}{clll}
+\toprule
+\textbf{\#} & \textbf{Feature Name} & \textbf{Formula} & \textbf{Group} \\
+\midrule
+1 & Acid Ratio & $\text{fixed\_acidity}\;/\;(\text{volatile\_acidity} + \epsilon)$ & Ratio \\
+2 & Sulfur Ratio & $\text{free\_SO}_2\;/\;(\text{total\_SO}_2 + \epsilon)$ & Ratio \\
+3 & Alcohol-Sugar Ratio & $\text{alcohol}\;/\;(\text{residual\_sugar} + \epsilon)$ & Ratio \\
+4 & Density-Alcohol Interaction & $\text{density} \times \text{alcohol}$ & Interaction \\
+5 & Sulphates-Alcohol & $\text{sulphates} \times \text{alcohol}$ & Interaction \\
+6 & Alcohol Squared & $(\text{alcohol})^{2}$ & Polynomial \\
+7 & Volatile Acidity Squared & $(\text{volatile\_acidity})^{2}$ & Polynomial \\
+8 & Log Volatile Acidity & $\ln(1 + \text{volatile\_acidity})$ & Logarithmic \\
+9 & Log Residual Sugar & $\ln(1 + \text{residual\_sugar})$ & Logarithmic \\
+10 & Log Chlorides & $\ln(1 + \text{chlorides})$ & Logarithmic \\
+11 & Chemical Balance Index & see Equation~\ref{eq:cbi} & Composite \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Group 1: Ratio Features}
+
+Ratio features capture the \textbf{relative balance} between two chemically related properties, rather than their absolute values. In wine chemistry, it is often the relationship between compounds---not the individual concentrations---that determines quality.
+
+\textbf{Acid Ratio} measures the balance between ``good'' acids (fixed acidity, primarily tartaric acid, which contributes to a pleasant tart flavor and structural stability) and ``bad'' acids (volatile acidity, primarily acetic acid, which produces an unpleasant vinegar taste). A high acid ratio indicates a wine with plentiful stable acids and minimal volatile faults---a hallmark of quality.
+
+\begin{equation}
+\text{Acid Ratio} = \frac{\text{Fixed Acidity}}{\text{Volatile Acidity} + \epsilon}
+\end{equation}
+
+\textbf{Sulfur Ratio} reflects the efficiency of sulfur dioxide (SO\textsubscript{2}) utilization. Free SO\textsubscript{2} is the ``active'' portion that protects wine against oxidation and microbial spoilage, while total SO\textsubscript{2} includes both free and bound (inactive) forms. A higher ratio means more of the added preservative is actually working, indicating better winemaking practices.
+
+\begin{equation}
+\text{Sulfur Ratio} = \frac{\text{Free SO}_2}{\text{Total SO}_2 + \epsilon}
+\end{equation}
+
+\textbf{Alcohol-Sugar Ratio} serves as a proxy for fermentation completeness. During fermentation, yeast converts sugar into alcohol; thus, high alcohol with low residual sugar indicates thorough fermentation---typically associated with higher quality, especially in dry wines.
+
+\begin{equation}
+\text{Alcohol-Sugar Ratio} = \frac{\text{Alcohol}}{\text{Residual Sugar} + \epsilon}
+\end{equation}
+
+Figure~\ref{fig:ratio_features} shows the mean value of each ratio feature across different quality levels. All three ratios exhibit a clear upward trend from low to high quality, confirming their discriminative power.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{feature_engineering_visuals/02_ratio_features_by_quality.png}
+    \caption{Ratio features: mean values across quality levels. All three ratios show a positive trend with increasing quality, confirming that the balance between chemical properties---not just their individual magnitudes---is a strong indicator of wine quality.}
+    \label{fig:ratio_features}
+\end{figure}
+
+\subsubsection{Group 2: Interaction Features}
+
+Interaction features capture \textbf{synergistic (multiplicative) effects} between two properties. When two features individually correlate with quality, their product can amplify the signal by highlighting samples where \emph{both} are simultaneously high or low.
+
+\textbf{Density-Alcohol Interaction} combines two properties that jointly define a wine's ``body'' or mouthfeel. Density is influenced by alcohol content (which lowers density) and sugar (which raises it). By multiplying density with alcohol, we create a composite measure of textural richness that neither feature captures alone.
+
+\begin{equation}
+\text{Density-Alcohol Interaction} = \text{Density} \times \text{Alcohol}
+\end{equation}
+
+\textbf{Sulphates-Alcohol Interaction} combines two positive quality indicators. Sulphates serve as a preservative additive (contributing to SO\textsubscript{2} levels), while alcohol correlates with flavor intensity. When both are high, the combined effect---a well-preserved, full-bodied wine---is especially indicative of high quality.
+
+\begin{equation}
+\text{Sulphates-Alcohol} = \text{Sulphates} \times \text{Alcohol}
+\end{equation}
+
+Figure~\ref{fig:interaction_features} demonstrates the relationship between each interaction feature and quality using scatter plots with mean trend lines.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{feature_engineering_visuals/03_interaction_features.png}
+    \caption{Interaction features vs.\ quality. The red trend line shows the mean interaction value for each quality level, revealing clear separation between quality groups that supports the use of multiplicative feature combinations.}
+    \label{fig:interaction_features}
+\end{figure}
+
+\subsubsection{Group 3: Polynomial Features}
+
+Polynomial (squared) features encode \textbf{non-linear relationships} between a feature and the target. Squaring a value amplifies the magnitude of extreme values, making the model more sensitive to the tails of the distribution---where quality differences are often most pronounced.
+
+\textbf{Alcohol Squared} amplifies the already strong linear relationship between alcohol and quality. The quadratic term is particularly useful because the quality improvement per unit increase in alcohol is not constant: it tends to accelerate at higher alcohol levels.
+
+\begin{equation}
+\text{Alcohol Squared} = (\text{Alcohol})^{2}
+\end{equation}
+
+\textbf{Volatile Acidity Squared} amplifies extreme values of volatile acidity. While moderate volatile acidity may be acceptable, very high volatile acidity is a severe fault (producing a strong vinegar smell). Squaring ensures that these extreme cases are disproportionately penalized.
+
+\begin{equation}
+\text{Volatile Acidity Squared} = (\text{Volatile Acidity})^{2}
+\end{equation}
+
+Figure~\ref{fig:polynomial_features} compares the distribution of original vs.\ squared features across quality levels using boxplots. The squared versions show enhanced separation between quality groups, particularly at the extremes.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{feature_engineering_visuals/04_polynomial_features.png}
+    \caption{Polynomial features: boxplot comparison of original vs.\ squared values by quality group. The squared transformation amplifies differences between quality levels, especially at the high (7--9) and low (3--4) ends of the scale.}
+    \label{fig:polynomial_features}
+\end{figure}
+
+\subsubsection{Group 4: Logarithmic Features}
+
+Logarithmic transformations using $\log_e(1 + x)$ (also written as $\ln(1+x)$ or \texttt{log1p}) are applied to features exhibiting strong positive skewness (right-skewed distributions). The $\log(1+x)$ form is used instead of $\log(x)$ to safely handle zero values.
+
+The primary benefits are:
+\begin{itemize}
+    \item \textbf{Reduced skewness:} Compresses the long right tail into a more symmetric, Gaussian-like distribution.
+    \item \textbf{Outlier mitigation:} Extreme values are ``pulled in'' closer to the bulk of the data, reducing their disproportionate influence on the model.
+    \item \textbf{Improved split efficiency:} For tree-based models, a more uniform distribution leads to more balanced and informative splits.
+\end{itemize}
+
+\begin{equation}
+\text{Log Volatile Acidity} = \ln(1 + \text{Volatile Acidity})
+\end{equation}
+\begin{equation}
+\text{Log Residual Sugar} = \ln(1 + \text{Residual Sugar})
+\end{equation}
+\begin{equation}
+\text{Log Chlorides} = \ln(1 + \text{Chlorides})
+\end{equation}
+
+\textbf{Log Residual Sugar} benefits the most from this transformation: the original distribution spans from 0.6 to 65.8 g/L with extreme skewness (skewness $\approx 1.44$), while the log-transformed version is compressed to a range of approximately 0.5--4.2 with substantially reduced skewness ($\approx 0.42$).
+
+Figure~\ref{fig:log_features} shows the before/after histograms for each logarithmic feature, with skewness values annotated.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{feature_engineering_visuals/05_log_features.png}
+    \caption{Logarithmic features: comparison of original (left, blue) and log-transformed (right, orange) distributions. Skewness values are annotated on each histogram. The transformation reduces right-skewness across all three features, with the most dramatic improvement seen in Residual Sugar (from 1.435 to 0.415).}
+    \label{fig:log_features}
+\end{figure}
+
+\subsubsection{Group 5: Chemical Balance Index (Composite Feature)}
+
+The most complex engineered feature is the \textbf{Chemical Balance Index (CBI)}, a weighted composite score designed using domain knowledge from wine chemistry. It combines five key quality-related properties into a single index:
 
 \begin{equation}
 \text{CBI} = 0.35 \times \text{Alcohol} + \frac{0.20}{\text{VA} + \epsilon} + 0.20 \times \text{Sulphates} + 0.15 \times \text{CA} + \frac{0.10}{\text{Chlorides} + \epsilon}
 \label{eq:cbi}
 \end{equation}
 
-where VA is volatile acidity, CA is citric acid, and $\epsilon = 10^{-8}$ prevents division by zero. This index positively rewards high alcohol, sulphates, and citric acid, while penalizing high volatile acidity and chlorides.
+where VA denotes volatile acidity, CA denotes citric acid, and $\epsilon = 10^{-8}$. The design rationale for each component and its weight is as follows:
+
+\begin{table}[H]
+\centering
+\caption{Components and weights of the Chemical Balance Index.}
+\label{tab:cbi_weights}
+\begin{tabular}{llcl}
+\toprule
+\textbf{Component} & \textbf{Form} & \textbf{Weight} & \textbf{Rationale} \\
+\midrule
+Alcohol & Direct ($+$) & 0.35 & Strongest positive correlate with quality \\
+Volatile Acidity & Inverse ($-$) & 0.20 & Negative correlate; low VA is desirable \\
+Sulphates & Direct ($+$) & 0.20 & Preservative; positive quality indicator \\
+Citric Acid & Direct ($+$) & 0.15 & Adds freshness; positive correlate \\
+Chlorides & Inverse ($-$) & 0.10 & Excessive salt degrades taste \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The weights (0.35, 0.20, 0.20, 0.15, 0.10) were assigned based on the correlation analysis conducted during the EDA phase, reflecting the relative importance of each property. The inverse form ($1/x$) is used for volatile acidity and chlorides to convert their negative correlations with quality into positive contributions to the score. This design mimics expert wine evaluation, where a taster simultaneously considers multiple attributes with varying importance.
+
+Figure~\ref{fig:quality_score} demonstrates the discriminative power of the CBI across quality levels.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{feature_engineering_visuals/06_quality_score.png}
+    \caption{Chemical Balance Index across quality levels. Left: boxplot showing a clear upward trend in median CBI as quality increases. Right: violin plot revealing that higher-quality wines have distributions shifted toward higher CBI values, confirming that this composite feature effectively summarizes overall wine quality.}
+    \label{fig:quality_score}
+\end{figure}
+
+
+\subsection{Feature Selection}
+
+After engineering, the total number of features increased from 12 to 23. Not all features are equally useful---some may be redundant or introduce noise. Therefore, a feature selection step was applied to retain only the most informative features.
+
+\subsubsection{Method: Correlation-Based Selection}
+
+The \textbf{top 15 features} were selected based on their absolute Pearson correlation with the target variable (\texttt{quality}). This simple yet effective method retains features with the strongest linear association to quality while discarding weakly correlated ones.
+
+Figure~\ref{fig:corr_comparison} compares the correlation landscape before and after feature engineering. Before FE, only ``alcohol'' and ``density'' show correlations above 0.30. After FE, several engineered features (shown in orange) enter the top ranks, demonstrating that the newly created features capture quality-relevant information that the original features alone could not provide.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{feature_engineering_visuals/01_correlation_comparison.png}
+    \caption{Comparison of feature correlations with quality before (left) and after (right) feature engineering. Orange bars represent newly engineered features. After FE, \texttt{alcohol\_squared} (0.446), \texttt{density\_alcohol\_interaction} (0.444), and \texttt{quality\_score} (0.414) all rank among the top 5 most correlated features.}
+    \label{fig:corr_comparison}
+\end{figure}
+
+\subsubsection{Validation via Feature Importance}
+
+To further validate the utility of the engineered features beyond correlation, a Random Forest classifier was trained on all 23 features, and the resulting feature importance scores (based on mean decrease in impurity) were examined. Figure~\ref{fig:feature_importance} shows the importance of each feature, with engineered features highlighted in orange.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{feature_engineering_visuals/07_feature_importance.png}
+    \caption{Feature importance from a Random Forest classifier trained on all 23 features. Engineered features (orange) dominate the top ranks: \texttt{quality\_score} (0.069), \texttt{density\_alcohol\_interaction} (0.066), and \texttt{sulfur\_ratio} (0.057) are the three most important features---all newly created through feature engineering.}
+    \label{fig:feature_importance}
+\end{figure}
+
+Notably, the \textbf{top 3 most important features are all engineered features}: Chemical Balance Index, Density-Alcohol Interaction, and Sulfur Ratio. This confirms that feature engineering not only improves correlation with the target but also provides \emph{genuinely new information} that helps tree-based models make better split decisions.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{2.3.png}
-    \caption{Correlation matrix of original and engineered features.}
+    \caption{Full correlation matrix including original and engineered features.}
     \label{fig:corr_heatmap}
 \end{figure}
 
-\subsection{Feature Selection}
 
-After engineering, the total number of features increased to 23. To reduce dimensionality and remove noise, the \textbf{top 15 features} were selected based on their absolute Pearson correlation with the target variable. This correlation-based selection retained the most informative features while discarding redundant or weakly correlated ones.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{2.4.png}
-    \caption{Top 15 features ranked by absolute correlation with quality.}
-    \label{fig:top15_feat}
-\end{figure}
 
 \subsection{Data Splitting and Preprocessing Pipeline}
 

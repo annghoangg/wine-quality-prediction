@@ -162,9 +162,7 @@ DF_COLUMN_MAP = {
 }
 
 
-# =============================================
 # MODEL / DATA LOADING
-# =============================================
 @st.cache_resource
 def load_models():
     base_path = "models"
@@ -200,9 +198,7 @@ def load_dataset():
         return None
 
 
-# =============================================
 # HELPER FUNCTIONS
-# =============================================
 def create_safe_wine_features(df_input):
     df_engineered = df_input.copy()
 
@@ -264,11 +260,10 @@ def run_prediction(input_df, imputer, scaler, label_encoder, top_features, model
 
 
 def get_gemini_description(api_key, wine_params, predicted_quality, wine_type):
-    """Generate a Vietnamese wine description using Gemini."""
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
-        llm = genai.GenerativeModel('gemini-2.0-flash')
+        llm = genai.GenerativeModel('gemini-3-flash-preview')
 
         prompt = f"""Bạn là một chuyên gia rượu vang (sommelier) giàu kinh nghiệm. Hãy mô tả và nhận xét về chai rượu vang dựa trên các thông số hóa học sau đây. Viết bằng tiếng Việt, ngắn gọn nhưng chuyên nghiệp (khoảng 150-200 từ).
 
@@ -303,7 +298,6 @@ Hãy bao gồm:
 FEEDBACK_FILE = "user_feedback.csv"
 
 def save_feedback(input_data, predicted_quality, user_quality, user_note):
-    """Append user feedback to CSV file."""
     feedback_row = input_data.copy()
     feedback_row['timestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     feedback_row['predicted_quality'] = predicted_quality
@@ -321,14 +315,12 @@ def save_feedback(input_data, predicted_quality, user_quality, user_note):
 
 
 def load_feedback():
-    """Load existing feedback from CSV."""
     if os.path.exists(FEEDBACK_FILE):
         return pd.read_csv(FEEDBACK_FILE)
     return None
 
 
 def check_out_of_range(input_values, dataset_df):
-    """Check which input values fall outside the training data observed range."""
     warnings = []
     numeric_cols = dataset_df.select_dtypes(include=[np.number]).columns
 
@@ -345,34 +337,26 @@ def check_out_of_range(input_values, dataset_df):
     return warnings
 
 
-# =============================================
 # SLIDER + NUMBER INPUT SYNC CALLBACKS
-# =============================================
 def sync_from_slider(feature_key):
-    """When slider changes, update the canonical value and the number input."""
     val = st.session_state[f"slider_{feature_key}"]
     st.session_state[f"val_{feature_key}"] = val
     st.session_state[f"num_{feature_key}"] = val
 
 
 def sync_from_number(feature_key):
-    """When number input changes, update the canonical value and the slider."""
     val = st.session_state[f"num_{feature_key}"]
     st.session_state[f"val_{feature_key}"] = val
     st.session_state[f"slider_{feature_key}"] = val
 
 
-# =============================================
 # LOAD EVERYTHING
-# =============================================
 imputer, scaler, label_encoder, top_features, model, model_name, explainer = load_models()
 dataset_df = load_dataset()
 
 if model is not None:
 
-    # =============================================
     # SIDEBAR
-    # =============================================
     st.sidebar.markdown("## Wine Characteristics")
     st.sidebar.caption("Adjust sliders or type values directly")
 
@@ -382,7 +366,6 @@ if model is not None:
     gemini_key = st.sidebar.text_input(
         "Gemini API Key",
         type="password",
-        help="Get a free key at https://aistudio.google.com/apikey"
     )
     st.sidebar.markdown("---")
 
@@ -474,9 +457,7 @@ if model is not None:
                 history_entry['Timestamp'] = datetime.datetime.now().strftime("%H:%M:%S")
                 st.session_state.history.append(history_entry)
 
-    # =============================================
     # MAIN CONTENT — TABS
-    # =============================================
     if st.session_state.last_prediction is not None:
         predicted_quality = st.session_state.last_prediction
 
@@ -486,9 +467,7 @@ if model is not None:
             "User Feedback", "History"
         ])
 
-        # =========================================
         # TAB 1: PREDICTION
-        # =========================================
         with tab_predict:
             if predicted_quality >= 7:
                 q_class = "high-quality"
@@ -566,9 +545,7 @@ if model is not None:
                         unsafe_allow_html=True
                     )
 
-        # =========================================
         # TAB 2: EXPLAINABILITY (XAI)
-        # =========================================
         with tab_xai:
             st.markdown("### Explainable AI (SHAP)")
             st.markdown(
@@ -585,9 +562,7 @@ if model is not None:
                     "blue bars push it lower. The length shows how much each feature contributed."
                 )
 
-        # =========================================
         # TAB 3: BATCH PREDICTION
-        # =========================================
         with tab_batch:
             st.markdown("### Batch Prediction")
             st.markdown(
@@ -658,9 +633,7 @@ if model is not None:
                 except Exception as e:
                     st.error(f"Error processing CSV: {str(e)}")
 
-        # =========================================
         # TAB 4: WINE COMPARISON
-        # =========================================
         with tab_compare:
             st.markdown("### Wine Comparison")
             st.markdown(
@@ -740,9 +713,7 @@ if model is not None:
                         else:
                             st.info("Both wines received the **same quality rating**.")
 
-        # =========================================
         # TAB 5: DATASET EXPLORER
-        # =========================================
         with tab_explorer:
             st.markdown("### Dataset Explorer")
 
@@ -780,10 +751,12 @@ if model is not None:
                     key="explorer_feature"
                 )
                 if selected_feature:
-                    st.bar_chart(
-                        pd.cut(numeric_df[selected_feature], bins=30).value_counts().sort_index(),
-                        color="#722F37"
-                    )
+                    hist_data = pd.cut(numeric_df[selected_feature], bins=30).value_counts().sort_index()
+                    hist_df = pd.DataFrame({
+                        'Bin': [str(interval) for interval in hist_data.index],
+                        'Count': hist_data.values
+                    }).set_index('Bin')
+                    st.bar_chart(hist_df, color="#722F37")
 
                     # Show where current input falls
                     col_key_reverse = {v: k for k, v in DF_COLUMN_MAP.items()}
@@ -808,9 +781,7 @@ if model is not None:
             else:
                 st.warning("Could not load the training dataset (wine_quality_dataset.csv).")
 
-        # =========================================
         # TAB 6: MODEL INFO
-        # =========================================
         with tab_model:
             st.markdown("### Model Information")
             st.markdown("Overview of the machine learning pipeline used in this system.")
@@ -858,9 +829,7 @@ if model is not None:
             feat_df = feat_df.set_index('#')
             st.dataframe(feat_df, use_container_width=True)
 
-        # =========================================
         # TAB 7: USER FEEDBACK
-        # =========================================
         with tab_feedback:
             st.markdown("### Rate This Wine")
             st.markdown("Provide your own quality assessment to help improve the model.")
@@ -921,9 +890,7 @@ if model is not None:
             else:
                 st.caption("No feedback submitted yet.")
 
-        # =========================================
         # TAB 8: HISTORY
-        # =========================================
         with tab_history:
             st.markdown("### Prediction History")
             if st.session_state.history:
